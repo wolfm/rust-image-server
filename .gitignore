@@ -1,0 +1,5 @@
+# Cargo builds
+/target
+
+# Vim swap files
+*.swp
