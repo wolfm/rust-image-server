@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::str;
 
 use std::io::prelude::*;
 use std::net::TcpListener;
@@ -17,7 +18,7 @@ fn main() {
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
-
+        println!("Connection received");
         handle_connection(stream);
     }
 }
@@ -25,22 +26,35 @@ fn main() {
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     stream.read(&mut buffer).unwrap();
+    let buffer_in = str::from_utf8(&buffer).unwrap();
 
-    let get_header = b"GET / HTTP/1.1\r\n";
+    // Print request
+    println!("Request:\n{}", String::from_utf8_lossy(&buffer[..]));
 
-    if buffer.starts_with(get_header) {
-        let contents = fs::read_to_string("index.html").unwrap();
+    // Read first header line
+    let mut iter = buffer_in.split_whitespace();
+    let req_method = iter.next();
+    let path = iter.next();
+    let http_version = iter.next();
 
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-            contents.len(),
-            contents
-        );
+    let (status, filename) = match (req_method, path) {
+        (None, _) | (_, None) => ("400 Bad Request", "400.html"),
+        (Some("GET"), Some("/index.html")) => ("200 OK", "index.html"), 
+        (Some("GET"), _) => ("404 NOT FOUND", "404.html"),
+        _ => ("501 Not Implemented", "501.html"),
+    };
 
-        stream.write(response.as_bytes()).unwrap();
-        stream.flush().unwrap();
-    } else {
-        println!("Unsupported Request");
-    }
+    let contents = fs::read_to_string(filename).unwrap();
 
+    let response = format!(
+        "HTTP/1.1 {}\r\nContent-Length: {}\r\n\r\n{}",
+        status,
+        contents.len(),
+        contents
+    );
+
+    // println!("{}", response);
+
+    stream.write(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
