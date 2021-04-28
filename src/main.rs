@@ -57,13 +57,13 @@ fn handle_connection(mut stream: TcpStream) {
 
     // Write response
     // TODO fix so that can GET .jpeg files. Currently read_to_string cannot read non-UTF-8
-    let contents = fs::read_to_string(filename).unwrap();
-    let response = format!(
-        "HTTP/1.1 {}\r\nContent-Length: {}\r\n\r\n{}",
+    let contents = fs::read(filename).unwrap();
+    let response_header = format!(
+        "HTTP/1.1 {}\r\nContent-Length: {}\r\n\r\n",
         status,
         contents.len(),
-        contents
     );
-    stream.write(response.as_bytes()).unwrap();
+    stream.write(response_header.as_bytes()).unwrap();
+    stream.write(&contents[..]).unwrap();
     stream.flush().unwrap();
 }
