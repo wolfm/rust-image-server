@@ -38,8 +38,12 @@ fn handle_connection(mut stream: TcpStream) {
     // Get response file based on request
     let (status, filename) = match (req_method, path) {
         (None, _) | (_, None) => ("400 Bad Request", "400.html"),
-        (Some("GET"), Some("/index.html")) | (Some("GET"), Some("/")) => ("200 OK", "index.html"), 
-        (Some("GET"), _) => 
+
+        // GET Request root page: index.html
+        (Some("GET"), Some("/")) => ("200 OK", "index.html"), 
+
+        // GET Request
+        (Some("GET"), _) => { 
             match (path) {
                 Some(path_str) => {
                     let path_slice = &path_str[1..];
@@ -49,7 +53,15 @@ fn handle_connection(mut stream: TcpStream) {
                     else { ("404 NOT FOUND", "404.html") }
                 },
                 None =>  ("404 NOT FOUND", "404.html")
-            },
+            }
+        },
+
+        // POST Request
+        (Some("POST"), _) => { 
+            ("501 Not Implemented", "501.html")
+        },
+
+        // Unsupported request
         _ => ("501 Not Implemented", "501.html"),
     };
 
